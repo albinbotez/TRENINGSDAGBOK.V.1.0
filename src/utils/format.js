@@ -23,6 +23,13 @@ export function formatDateLong(dateStr) {
   return `${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`
 }
 
+export function formatDateTime(isoString) {
+  const d = new Date(isoString)
+  const date = `${d.getDate()}. ${MONTHS_SHORT[d.getMonth()]}`
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return `${date} · ${time}`
+}
+
 export function formatSeconds(seconds) {
   return Number(seconds).toFixed(2).replace('.', ',')
 }

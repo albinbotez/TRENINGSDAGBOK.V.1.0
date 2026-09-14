@@ -1,5 +1,6 @@
 import './style.css'
 import { supabase } from './supabaseClient.js'
+import { getProfileMap } from './api/profiles.js'
 import { registerRoute, startRouter, navigate } from './router.js'
 import { renderLogin } from './views/login.js'
 import { renderDashboard } from './views/dashboard.js'
@@ -7,11 +8,14 @@ import { renderHistory } from './views/history.js'
 import { renderProgression } from './views/progression.js'
 import { renderSessionDetail } from './views/sessionDetail.js'
 import { renderSessionForm } from './views/sessionForm.js'
+import { renderSuggestions } from './views/suggestions.js'
 
 const app = document.getElementById('app')
 let currentUser = null
 
 function renderAppShell(activePath) {
+  const isAthlete = currentUser.role === 'utøver'
+
   app.innerHTML = `
     <header class="site-header">
       <div class="site-header__row">
@@ -21,8 +25,9 @@ function renderAppShell(activePath) {
       <nav class="site-nav" aria-label="Hovednavigasjon">
         <a href="#/" class="site-nav__link" data-path="/">Siste økt</a>
         <a href="#/historikk" class="site-nav__link" data-path="historikk">Historikk</a>
+        <a href="#/forslag" class="site-nav__link" data-path="forslag">Forslag</a>
         <a href="#/progresjon" class="site-nav__link" data-path="progresjon">Progresjon</a>
-        <a href="#/okt/ny" class="site-nav__link site-nav__link--cta" data-path="ny">Logg ny økt</a>
+        ${isAthlete ? '<a href="#/okt/ny" class="site-nav__link site-nav__link--cta" data-path="ny">Logg ny økt</a>' : ''}
       </nav>
     </header>
     <main id="view"></main>
@@ -51,20 +56,39 @@ function guard(handler, activePath) {
   }
 }
 
-registerRoute(/^\/$/, guard((view) => renderDashboard(view), '/'))
-registerRoute(/^\/historikk$/, guard((view) => renderHistory(view), 'historikk'))
+function guardAthlete(handler, activePath) {
+  return guard((view, params, user) => {
+    if (user.role !== 'utøver') {
+      view.innerHTML = `
+        <div class="empty-state">
+          <h1 class="page-title">Ingen tilgang</h1>
+          <p>Kun utøveren kan logge, redigere eller duplisere økter. Bruk Forslag-siden for å foreslå en økt.</p>
+        </div>
+      `
+      return
+    }
+    handler(view, params, user)
+  }, activePath)
+}
+
+registerRoute(/^\/$/, guard((view, params, user) => renderDashboard(view, user), '/'))
+registerRoute(
+  /^\/historikk$/,
+  guard((view, params, user) => renderHistory(view, params, user), 'historikk')
+)
+registerRoute(/^\/forslag$/, guard((view, params, user) => renderSuggestions(view, params, user), 'forslag'))
 registerRoute(/^\/progresjon$/, guard((view) => renderProgression(view), 'progresjon'))
 registerRoute(
   /^\/okt\/ny$/,
-  guard((view, params, user) => renderSessionForm(view, { mode: 'new' }, user), 'ny')
+  guardAthlete((view, params, user) => renderSessionForm(view, { mode: 'new' }, user), 'ny')
 )
 registerRoute(
   /^\/okt\/(?<id>[^/]+)\/rediger$/,
-  guard((view, { id }, user) => renderSessionForm(view, { mode: 'edit', id }, user), null)
+  guardAthlete((view, { id }, user) => renderSessionForm(view, { mode: 'edit', id }, user), null)
 )
 registerRoute(
   /^\/okt\/(?<id>[^/]+)\/dupliser$/,
-  guard((view, { id }, user) => renderSessionForm(view, { mode: 'duplicate', id }, user), 'ny')
+  guardAthlete((view, { id }, user) => renderSessionForm(view, { mode: 'duplicate', id }, user), 'ny')
 )
 registerRoute(
   /^\/okt\/(?<id>[^/]+)$/,
@@ -75,6 +99,12 @@ function renderLoginScreen() {
   renderLogin(app)
 }
 
+async function loadRole(user) {
+  const profileMap = await getProfileMap()
+  user.role = profileMap[user.id]?.role || null
+  return user
+}
+
 async function boot() {
   const {
     data: { session },
@@ -82,21 +112,31 @@ async function boot() {
   currentUser = session ? session.user : null
 
   if (currentUser) {
+    await loadRole(currentUser)
     startRouter(() => navigate('/'))
   } else {
     renderLoginScreen()
   }
 
-  supabase.auth.onAuthStateChange((_event, newSession) => {
-    const wasAuthed = !!currentUser
-    currentUser = newSession ? newSession.user : null
+  supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const newUser = newSession ? newSession.user : null
 
-    if (currentUser && !wasAuthed) {
-      startRouter(() => navigate('/'))
-    } else if (!currentUser) {
+    if (!newUser) {
+      currentUser = null
       window.location.hash = ''
       renderLoginScreen()
+      return
     }
+
+    if (currentUser && currentUser.id === newUser.id) {
+      // Same user re-announced (initial session echo, token refresh) —
+      // role is already loaded on currentUser, nothing to do.
+      return
+    }
+
+    currentUser = newUser
+    await loadRole(currentUser)
+    startRouter(() => navigate('/'))
   })
 }
 
