@@ -1,0 +1,236 @@
+/* ---------- Design tokens ---------- */
+:root {
+  --concrete: #edebe4;
+  --ink: #0d0d0d;
+  --hazard: #ff4d00;
+  --record: #d62828;
+
+  --font-display: 'Big Shoulders Display', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+
+  --border-thick: 3px;
+  --border-thin: 2px;
+}
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--concrete);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.4;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+button,
+input,
+label {
+  font-family: var(--font-body);
+}
+
+button {
+  border-radius: 0;
+  cursor: pointer;
+}
+
+input {
+  border-radius: 0;
+}
+
+:focus-visible {
+  outline: 3px solid var(--hazard);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* ---------- App shell ---------- */
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header {
+  border-bottom: var(--border-thick) solid var(--ink);
+  padding: 1rem 1.25rem;
+}
+
+.site-header__mark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Auth screen ---------- */
+.auth-screen {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  padding: 3rem 1.25rem;
+}
+
+.auth-block {
+  display: flex;
+  width: 100%;
+  max-width: 480px;
+  border: var(--border-thick) solid var(--ink);
+  background: var(--concrete);
+}
+
+.auth-block__spine {
+  flex: 0 0 16px;
+  background: var(--hazard);
+  border-right: var(--border-thick) solid var(--ink);
+}
+
+.auth-block__content {
+  flex: 1;
+  padding: 2rem 1.5rem;
+}
+
+.auth-title {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.auth-subtitle {
+  margin: 0.75rem 0 2rem;
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.auth-form label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 1rem;
+}
+
+.auth-form label:first-of-type {
+  margin-top: 0;
+}
+
+.auth-form input {
+  min-height: 44px;
+  padding: 0.6rem 0.7rem;
+  border: var(--border-thin) solid var(--ink);
+  background: #fff;
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.auth-form input:focus-visible {
+  outline-offset: -3px;
+}
+
+.auth-submit {
+  margin-top: 1.75rem;
+  min-height: 44px;
+  padding: 0.75rem 1rem;
+  border: var(--border-thin) solid var(--ink);
+  background: var(--ink);
+  color: var(--concrete);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.auth-submit:hover,
+.auth-submit:focus-visible {
+  background: var(--hazard);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.auth-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-error {
+  margin: 1rem 0 0;
+  padding: 0.6rem 0.7rem;
+  border: var(--border-thin) solid var(--record);
+  color: var(--record);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* ---------- Signed-in placeholder (temporary, until dashboard exists) ---------- */
+.session-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  padding: 3rem 1.25rem;
+}
+
+.session-placeholder__block {
+  width: 100%;
+  max-width: 480px;
+  border: var(--border-thick) solid var(--ink);
+  padding: 2rem 1.5rem;
+}
+
+.session-placeholder__block p {
+  margin: 0 0 1.5rem;
+}
+
+.session-signout {
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: var(--border-thin) solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.session-signout:hover,
+.session-signout:focus-visible {
+  background: var(--ink);
+  color: var(--concrete);
+}
