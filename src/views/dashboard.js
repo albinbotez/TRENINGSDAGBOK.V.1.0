@@ -4,8 +4,10 @@ import { getProfileMap } from '../api/profiles.js'
 import { renderExerciseList, renderRpeSegments } from './shared.js'
 import { formatDateLong, escapeHtml } from '../utils/format.js'
 
-export async function renderDashboard(container) {
+export async function renderDashboard(container, user) {
   container.innerHTML = `<p class="loading">Laster …</p>`
+
+  const isAthlete = user.role === 'utøver'
 
   const [session, records, profileMap] = await Promise.all([
     getLatestSession(),
@@ -17,8 +19,8 @@ export async function renderDashboard(container) {
     container.innerHTML = `
       <div class="empty-state">
         <h1 class="page-title">Ingen økter ennå</h1>
-        <p>Logg din første treningsnøkt for å komme i gang.</p>
-        <a class="auth-submit link-button" href="#/okt/ny">Logg ny økt</a>
+        <p>${isAthlete ? 'Logg din første treningsøkt for å komme i gang.' : 'Utøveren har ikke logget noen økt ennå.'}</p>
+        ${isAthlete ? '<a class="auth-submit link-button" href="#/okt/ny">Logg ny økt</a>' : ''}
       </div>
     `
     return
@@ -53,7 +55,7 @@ export async function renderDashboard(container) {
         </div>
         <div class="session-page__actions">
           <a href="#/okt/${session.id}" class="text-link">Se full detalj</a>
-          <a href="#/okt/${session.id}/rediger" class="text-link">Rediger</a>
+          ${isAthlete ? `<a href="#/okt/${session.id}/rediger" class="text-link">Rediger</a>` : ''}
         </div>
       </div>
     </div>

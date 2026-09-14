@@ -4,8 +4,10 @@ import { renderExerciseList, renderRpeSegments } from './shared.js'
 import { formatDateLong, escapeHtml } from '../utils/format.js'
 import { navigate } from '../router.js'
 
-export async function renderSessionDetail(container, id) {
+export async function renderSessionDetail(container, id, user) {
   container.innerHTML = `<p class="loading">Laster …</p>`
+
+  const isAthlete = user.role === 'utøver'
 
   const [session, profileMap] = await Promise.all([getSession(id), getProfileMap()])
   const loggedBy = profileMap[session.created_by]
@@ -27,18 +29,26 @@ export async function renderSessionDetail(container, id) {
           </div>
           ${session.note ? `<p class="session-note">${escapeHtml(session.note)}</p>` : ''}
         </div>
-        <div class="session-page__actions">
-          <a href="#/okt/${session.id}/rediger" class="text-link">Rediger</a>
-          <a href="#/okt/${session.id}/dupliser" class="text-link">Kjør denne på nytt</a>
-          <button type="button" class="text-link text-link--danger" id="delete-btn">Slett</button>
-        </div>
+        ${
+          isAthlete
+            ? `
+          <div class="session-page__actions">
+            <a href="#/okt/${session.id}/rediger" class="text-link">Rediger</a>
+            <a href="#/okt/${session.id}/dupliser" class="text-link">Kjør denne på nytt</a>
+            <button type="button" class="text-link text-link--danger" id="delete-btn">Slett</button>
+          </div>
+        `
+            : ''
+        }
       </div>
     </div>
   `
 
-  document.getElementById('delete-btn').addEventListener('click', async () => {
-    if (!window.confirm('Slette denne økta? Dette kan ikke angres.')) return
-    await deleteSession(session.id)
-    navigate('/historikk')
-  })
+  if (isAthlete) {
+    document.getElementById('delete-btn').addEventListener('click', async () => {
+      if (!window.confirm('Slette denne økta? Dette kan ikke angres.')) return
+      await deleteSession(session.id)
+      navigate('/historikk')
+    })
+  }
 }

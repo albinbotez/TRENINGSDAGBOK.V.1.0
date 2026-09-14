@@ -3,8 +3,10 @@ import { getProfileMap } from '../api/profiles.js'
 import { renderExerciseList, renderRpeSegments } from './shared.js'
 import { formatDateShort, escapeHtml } from '../utils/format.js'
 
-export async function renderHistory(container) {
+export async function renderHistory(container, params, user) {
   container.innerHTML = `<p class="loading">Laster …</p>`
+
+  const isAthlete = user.role === 'utøver'
 
   const [sessions, profileMap] = await Promise.all([listSessions(), getProfileMap()])
 
@@ -22,7 +24,7 @@ export async function renderHistory(container) {
     <div class="history-page">
       <h1 class="page-title">Historikk</h1>
       <ul class="history-list">
-        ${sessions.map((s) => renderHistoryRow(s, profileMap)).join('')}
+        ${sessions.map((s) => renderHistoryRow(s, profileMap, isAthlete)).join('')}
       </ul>
     </div>
   `
@@ -33,17 +35,19 @@ export async function renderHistory(container) {
     })
   })
 
-  container.querySelectorAll('[data-action="delete-row"]').forEach((btn) => {
-    btn.addEventListener('click', async (event) => {
-      event.stopPropagation()
-      if (!window.confirm('Slette denne økta? Dette kan ikke angres.')) return
-      await deleteSession(btn.dataset.id)
-      renderHistory(container)
+  if (isAthlete) {
+    container.querySelectorAll('[data-action="delete-row"]').forEach((btn) => {
+      btn.addEventListener('click', async (event) => {
+        event.stopPropagation()
+        if (!window.confirm('Slette denne økta? Dette kan ikke angres.')) return
+        await deleteSession(btn.dataset.id)
+        renderHistory(container, params, user)
+      })
     })
-  })
+  }
 }
 
-function renderHistoryRow(session, profileMap) {
+function renderHistoryRow(session, profileMap, isAthlete) {
   const loggedBy = profileMap[session.created_by]
   return `
     <li class="history-row" data-id="${session.id}">
@@ -61,11 +65,17 @@ function renderHistoryRow(session, profileMap) {
           </div>
           ${session.note ? `<p class="session-note">${escapeHtml(session.note)}</p>` : ''}
         </div>
-        <div class="session-page__actions">
-          <a href="#/okt/${session.id}/rediger" class="text-link">Rediger</a>
-          <a href="#/okt/${session.id}/dupliser" class="text-link">Kjør denne på nytt</a>
-          <button type="button" class="text-link text-link--danger" data-action="delete-row" data-id="${session.id}">Slett</button>
-        </div>
+        ${
+          isAthlete
+            ? `
+          <div class="session-page__actions">
+            <a href="#/okt/${session.id}/rediger" class="text-link">Rediger</a>
+            <a href="#/okt/${session.id}/dupliser" class="text-link">Kjør denne på nytt</a>
+            <button type="button" class="text-link text-link--danger" data-action="delete-row" data-id="${session.id}">Slett</button>
+          </div>
+        `
+            : ''
+        }
       </div>
     </li>
   `
