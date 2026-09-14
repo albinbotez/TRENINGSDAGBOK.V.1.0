@@ -10,7 +10,7 @@ export function renderLogin(container, errorMessage = '') {
         <div class="auth-block__spine" aria-hidden="true"></div>
         <div class="auth-block__content">
           <h1 class="auth-title">Logg inn</h1>
-          <p class="auth-subtitle">For utøveren og treneren</p>
+          <p class="auth-subtitle">For Albin og Hilde</p>
           <form id="login-form" class="auth-form" novalidate>
             <label for="email">E-post</label>
             <input id="email" name="email" type="email" required autocomplete="username" />
