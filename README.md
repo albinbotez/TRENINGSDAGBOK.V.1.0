@@ -14,12 +14,21 @@ JavaScript/CSS og Supabase (autentisering + database).
 
 ## Supabase-oppsett (gjøres manuelt, ikke fra denne koden)
 
-- Opprett de to brukerkontoene (utøver og trener) manuelt under
-  Authentication → Users i Supabase-dashbordet.
-- Slå av "Allow new users to sign up" under Authentication → Providers →
-  Email, slik at ingen andre kan registrere seg. Appen har ingen
-  registreringsskjema, men denne innstillingen hindrer også direkte
-  API-kall utenfra.
+1. Opprett et nytt Supabase-prosjekt.
+2. Åpne SQL Editor og kjør hele innholdet i `supabase/schema.sql`. Dette
+   oppretter alle tabellene (øvelser, økter, øvelser-i-økt, styrke- og
+   løpsdata) og sikkerhetsreglene (RLS) som gir de to innloggede
+   kontoene full tilgang til alt, uavhengig av hvem som opprettet raden.
+3. Opprett de to brukerkontoene (utøver og trener) manuelt under
+   Authentication → Users.
+4. Slå av "Allow new users to sign up" under Authentication → Providers →
+   Email, slik at ingen andre kan registrere seg. Appen har ingen
+   registreringsskjema, men denne innstillingen hindrer også direkte
+   API-kall utenfra.
+5. Kjør de to `insert into profiles …`-setningene nederst i
+   `supabase/schema.sql` (kommentert ut), med de faktiske bruker-ID-ene
+   fra steg 3 og de riktige navnene. Dette gjør at appen kan vise hvem
+   som har logget en økt.
 
 ## Deploy (Netlify)
 

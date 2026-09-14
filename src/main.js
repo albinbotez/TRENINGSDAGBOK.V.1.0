@@ -1,97 +1,103 @@
 import './style.css'
 import { supabase } from './supabaseClient.js'
+import { registerRoute, startRouter, navigate } from './router.js'
+import { renderLogin } from './views/login.js'
+import { renderDashboard } from './views/dashboard.js'
+import { renderHistory } from './views/history.js'
+import { renderProgression } from './views/progression.js'
+import { renderSessionDetail } from './views/sessionDetail.js'
+import { renderSessionForm } from './views/sessionForm.js'
 
 const app = document.getElementById('app')
+let currentUser = null
 
-function renderShell(innerHtml) {
+function renderAppShell(activePath) {
   app.innerHTML = `
     <header class="site-header">
-      <span class="site-header__mark">Løpedagboken</span>
+      <div class="site-header__row">
+        <span class="site-header__mark">Løpedagboken</span>
+        <button type="button" class="site-header__signout" id="signout-btn">Logg ut</button>
+      </div>
+      <nav class="site-nav" aria-label="Hovednavigasjon">
+        <a href="#/" class="site-nav__link" data-path="/">Siste økt</a>
+        <a href="#/historikk" class="site-nav__link" data-path="historikk">Historikk</a>
+        <a href="#/progresjon" class="site-nav__link" data-path="progresjon">Progresjon</a>
+        <a href="#/okt/ny" class="site-nav__link site-nav__link--cta" data-path="ny">Logg ny økt</a>
+      </nav>
     </header>
-    ${innerHtml}
+    <main id="view"></main>
   `
-}
-
-function renderLogin(errorMessage = '') {
-  renderShell(`
-    <main class="auth-screen">
-      <div class="auth-block">
-        <div class="auth-block__spine" aria-hidden="true"></div>
-        <div class="auth-block__content">
-          <h1 class="auth-title">Logg inn</h1>
-          <p class="auth-subtitle">For utøveren og treneren</p>
-          <form id="login-form" class="auth-form" novalidate>
-            <label for="email">E-post</label>
-            <input id="email" name="email" type="email" required autocomplete="username" />
-            <label for="password">Passord</label>
-            <input id="password" name="password" type="password" required autocomplete="current-password" />
-            <button type="submit" class="auth-submit">Logg inn</button>
-            ${
-              errorMessage
-                ? `<p class="auth-error" role="alert">${errorMessage}</p>`
-                : ''
-            }
-          </form>
-        </div>
-      </div>
-    </main>
-  `)
-
-  const form = document.getElementById('login-form')
-  form.addEventListener('submit', handleLogin)
-}
-
-function renderSignedIn(user) {
-  renderShell(`
-    <main class="session-placeholder">
-      <div class="session-placeholder__block">
-        <h1 class="auth-title">Innlogget</h1>
-        <p>${user.email} — dashbordet kommer i neste steg.</p>
-        <button type="button" class="session-signout" id="signout-btn">Logg ut</button>
-      </div>
-    </main>
-  `)
 
   document.getElementById('signout-btn').addEventListener('click', async () => {
     await supabase.auth.signOut()
   })
-}
 
-async function handleLogin(event) {
-  event.preventDefault()
-  const form = event.currentTarget
-  const submitButton = form.querySelector('.auth-submit')
-  const email = form.email.value.trim()
-  const password = form.password.value
-
-  submitButton.disabled = true
-
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (error) {
-    renderLogin('Feil e-post eller passord.')
-    return
-  }
-}
-
-async function init() {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (session) {
-    renderSignedIn(session.user)
-  } else {
-    renderLogin()
-  }
-
-  supabase.auth.onAuthStateChange((_event, newSession) => {
-    if (newSession) {
-      renderSignedIn(newSession.user)
-    } else {
-      renderLogin()
+  app.querySelectorAll('.site-nav__link').forEach((link) => {
+    if (link.dataset.path === activePath) {
+      link.classList.add('site-nav__link--active')
     }
   })
 }
 
-init()
+function getView() {
+  return document.getElementById('view')
+}
+
+function guard(handler, activePath) {
+  return (params) => {
+    if (!currentUser) return
+    renderAppShell(activePath)
+    handler(getView(), params, currentUser)
+  }
+}
+
+registerRoute(/^\/$/, guard((view) => renderDashboard(view), '/'))
+registerRoute(/^\/historikk$/, guard((view) => renderHistory(view), 'historikk'))
+registerRoute(/^\/progresjon$/, guard((view) => renderProgression(view), 'progresjon'))
+registerRoute(
+  /^\/okt\/ny$/,
+  guard((view, params, user) => renderSessionForm(view, { mode: 'new' }, user), 'ny')
+)
+registerRoute(
+  /^\/okt\/(?<id>[^/]+)\/rediger$/,
+  guard((view, { id }, user) => renderSessionForm(view, { mode: 'edit', id }, user), null)
+)
+registerRoute(
+  /^\/okt\/(?<id>[^/]+)\/dupliser$/,
+  guard((view, { id }, user) => renderSessionForm(view, { mode: 'duplicate', id }, user), 'ny')
+)
+registerRoute(
+  /^\/okt\/(?<id>[^/]+)$/,
+  guard((view, { id }, user) => renderSessionDetail(view, id, user), null)
+)
+
+function renderLoginScreen() {
+  renderLogin(app)
+}
+
+async function boot() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  currentUser = session ? session.user : null
+
+  if (currentUser) {
+    startRouter(() => navigate('/'))
+  } else {
+    renderLoginScreen()
+  }
+
+  supabase.auth.onAuthStateChange((_event, newSession) => {
+    const wasAuthed = !!currentUser
+    currentUser = newSession ? newSession.user : null
+
+    if (currentUser && !wasAuthed) {
+      startRouter(() => navigate('/'))
+    } else if (!currentUser) {
+      window.location.hash = ''
+      renderLoginScreen()
+    }
+  })
+}
+
+boot()
