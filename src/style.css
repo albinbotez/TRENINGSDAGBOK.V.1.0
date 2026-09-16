@@ -240,6 +240,186 @@ input {
   color: var(--record);
 }
 
+/* ---------- Calendar / week planner ---------- */
+.calendar {
+  border: var(--border-thick) solid var(--ink);
+  margin-bottom: 1.5rem;
+}
+
+.calendar__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border-bottom: var(--border-thick) solid var(--ink);
+}
+
+.calendar__title {
+  font-size: 1.05rem;
+  margin: 0;
+}
+
+.calendar-nav-btn {
+  min-width: 44px;
+  min-height: 44px;
+  border: var(--border-thin) solid var(--ink);
+  background: transparent;
+  font-size: 1.1rem;
+  color: var(--ink);
+}
+
+.calendar-nav-btn:hover,
+.calendar-nav-btn:focus-visible {
+  background: var(--ink);
+  color: var(--concrete);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.calendar-grid--labels {
+  border-bottom: var(--border-thin) solid var(--ink);
+}
+
+.calendar-weekday {
+  padding: 0.4rem 0.2rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-align: center;
+  opacity: 0.7;
+}
+
+.calendar-cell {
+  min-height: 96px;
+  border-right: var(--border-thin) solid var(--ink);
+  border-bottom: var(--border-thin) solid var(--ink);
+  padding: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.calendar-grid > .calendar-cell:nth-child(7n) {
+  border-right: none;
+}
+
+.calendar-cell--empty {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent,
+    transparent 8px,
+    rgba(13, 13, 13, 0.05) 8px,
+    rgba(13, 13, 13, 0.05) 9px
+  );
+}
+
+.calendar-cell--today {
+  background: #fff;
+  box-shadow: inset 0 0 0 2px var(--hazard);
+}
+
+.calendar-cell__day {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.calendar-marker {
+  display: block;
+  border: var(--border-thin) solid var(--ink);
+  padding: 0.15rem 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--hazard);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-marker--planned {
+  background: transparent;
+  border-style: dashed;
+}
+
+.calendar-add-btn {
+  align-self: flex-start;
+  min-width: 44px;
+  min-height: 44px;
+  border: var(--border-thin) dashed var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.calendar-add-btn:hover,
+.calendar-add-btn:focus-visible {
+  opacity: 1;
+  background: var(--ink);
+  color: var(--concrete);
+}
+
+.calendar-quick-add {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.calendar-quick-add input {
+  min-height: 36px;
+  padding: 0.2rem 0.4rem;
+  border: var(--border-thin) solid var(--ink);
+  font-size: 0.75rem;
+  background: #fff;
+  width: 100%;
+}
+
+.calendar-quick-add__actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.calendar-quick-add__actions button {
+  min-height: 44px;
+  padding: 0.2rem 0.5rem;
+  border: var(--border-thin) solid var(--ink);
+  background: var(--ink);
+  color: var(--concrete);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  flex: 1;
+}
+
+.calendar-quick-add__actions button[type='button'] {
+  background: transparent;
+  color: var(--ink);
+}
+
+@media (max-width: 560px) {
+  .calendar-cell {
+    min-height: 76px;
+    padding: 0.2rem;
+  }
+  .calendar-cell__day {
+    font-size: 0.7rem;
+  }
+  .calendar-marker {
+    font-size: 0.6rem;
+  }
+  .calendar-weekday {
+    font-size: 0.55rem;
+  }
+}
+
 /* ---------- Session page (dashboard + detail) ---------- */
 .session-page {
   display: flex;

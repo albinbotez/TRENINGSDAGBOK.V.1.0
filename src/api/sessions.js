@@ -69,9 +69,12 @@ export async function getLatestSession() {
     .select(SESSION_SELECT)
     .order('date', { ascending: false })
     .order('created_at', { ascending: false })
-    .limit(1)
+    .limit(10)
   if (error) throw error
-  return data.length ? normalizeSession(data[0]) : null
+  const sessions = data.map(normalizeSession)
+  // Skip planned (empty) sessions from the future/present so a placeholder
+  // in the week planner doesn't hide the real most recent logged session.
+  return sessions.find((s) => s.exercises.length > 0) || sessions[0] || null
 }
 
 async function saveSessionExercises(sessionId, exercises) {
