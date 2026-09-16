@@ -34,6 +34,10 @@ create table if not exists sessions (
 
 create index if not exists sessions_date_idx on sessions (date desc);
 
+-- Valgfritt notat om skade/vondt, knyttet til økta. Vises samlet i en
+-- egen "Skader"-fane for å gi skadehistorikk over tid.
+alter table sessions add column if not exists injury_note text;
+
 -- Øvelser logget i en økt (rekkefølge + eventuelt notat).
 create table if not exists session_exercises (
   id uuid primary key default gen_random_uuid(),
@@ -45,12 +49,38 @@ create table if not exists session_exercises (
 
 create index if not exists session_exercises_session_idx on session_exercises (session_id);
 
--- Styrkedata for en loggført øvelse (tyngste sett).
+-- Styrkedata for en loggført øvelse (sett/reps-skjema som fritekst).
 create table if not exists strength_entries (
   session_exercise_id uuid primary key references session_exercises(id) on delete cascade,
-  weight_kg numeric not null,
   reps_scheme text not null
 );
+
+-- Vekt per enkeltsett, siden man sjelden løfter nøyaktig samme vekt hver
+-- gang. Tyngste sett (progresjon) regnes ut som max(weight_kg) her.
+create table if not exists strength_sets (
+  id uuid primary key default gen_random_uuid(),
+  strength_entry_id uuid not null references strength_entries(session_exercise_id) on delete cascade,
+  weight_kg numeric not null,
+  position integer not null default 0
+);
+
+create index if not exists strength_sets_entry_idx on strength_sets (strength_entry_id);
+
+-- Migrer eksisterende data fra when strength_entries.weight_kg fantes
+-- (før denne tabellen ble innført) inn i strength_sets, og fjern kolonnen.
+-- Trygt å kjøre flere ganger: gjør ingenting etter første kjøring.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_name = 'strength_entries' and column_name = 'weight_kg'
+  ) then
+    insert into strength_sets (strength_entry_id, weight_kg, position)
+    select session_exercise_id, weight_kg, 0 from strength_entries;
+
+    alter table strength_entries drop column weight_kg;
+  end if;
+end $$;
 
 -- Løpsdata for en loggført øvelse.
 create table if not exists run_entries (
@@ -102,6 +132,7 @@ alter table exercises enable row level security;
 alter table sessions enable row level security;
 alter table session_exercises enable row level security;
 alter table strength_entries enable row level security;
+alter table strength_sets enable row level security;
 alter table run_entries enable row level security;
 alter table run_times enable row level security;
 alter table suggestions enable row level security;
@@ -140,6 +171,12 @@ drop policy if exists "strength_entries_select" on strength_entries;
 drop policy if exists "strength_entries_write" on strength_entries;
 create policy "strength_entries_select" on strength_entries for select to authenticated using (true);
 create policy "strength_entries_write" on strength_entries for all to authenticated using (is_utover()) with check (is_utover());
+
+drop policy if exists "authenticated full access" on strength_sets;
+drop policy if exists "strength_sets_select" on strength_sets;
+drop policy if exists "strength_sets_write" on strength_sets;
+create policy "strength_sets_select" on strength_sets for select to authenticated using (true);
+create policy "strength_sets_write" on strength_sets for all to authenticated using (is_utover()) with check (is_utover());
 
 drop policy if exists "authenticated full access" on run_entries;
 drop policy if exists "run_entries_select" on run_entries;

@@ -1,6 +1,6 @@
 import { listSessions, deleteSession } from '../api/sessions.js'
 import { getProfileMap } from '../api/profiles.js'
-import { renderExerciseList, renderRpeSegments } from './shared.js'
+import { renderExerciseList, renderRpeSegments, renderInjuryNote } from './shared.js'
 import { formatDateShort, escapeHtml } from '../utils/format.js'
 
 export async function renderHistory(container, params, user) {
@@ -64,6 +64,7 @@ function renderHistoryRow(session, profileMap, isAthlete) {
             ${renderRpeSegments(session.rpe)}
           </div>
           ${session.note ? `<p class="session-note">${escapeHtml(session.note)}</p>` : ''}
+          ${renderInjuryNote(session.injury_note)}
         </div>
         ${
           isAthlete

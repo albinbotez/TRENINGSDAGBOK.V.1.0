@@ -431,6 +431,58 @@ input {
   font-size: 0.95rem;
 }
 
+.injury-note {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  border-left: var(--border-thick) solid var(--hazard);
+  font-size: 0.95rem;
+}
+
+.injury-note__label {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+
+/* ---------- Injuries page ---------- */
+.injury-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 640px;
+}
+
+.injury-item {
+  border: var(--border-thick) solid var(--hazard);
+  padding: 1rem 1.1rem;
+}
+
+.injury-item__head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.injury-item__date {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.injury-item__text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
 /* ---------- History ---------- */
 .history-list {
   list-style: none;
@@ -500,6 +552,14 @@ input {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  text-decoration: none;
+  color: var(--ink);
+  transition: background 0.15s ease;
+}
+
+.record-tile:hover,
+.record-tile:focus-visible {
+  background: #e2ddd0;
 }
 
 .record-tile + .record-tile {
@@ -546,6 +606,79 @@ input {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.9rem;
+}
+
+/* ---------- Progression detail (chart + table) ---------- */
+.progression-detail-page {
+  max-width: 720px;
+}
+
+.progression-detail-page .page-title {
+  margin-top: 0.75rem;
+}
+
+.progression-chart-wrap {
+  position: relative;
+  border: var(--border-thin) solid var(--ink);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.progression-chart {
+  display: block;
+  width: 100%;
+  min-width: 320px;
+  height: 260px;
+}
+
+.progression-point {
+  fill: var(--hazard);
+  stroke: var(--ink);
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.progression-point--best {
+  fill: var(--record);
+}
+
+.progression-tooltip {
+  position: absolute;
+  pointer-events: none;
+  border: var(--border-thin) solid var(--ink);
+  background: var(--concrete);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transform: translateY(-100%);
+}
+
+.progression-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+}
+
+.progression-table th,
+.progression-table td {
+  border: var(--border-thin) solid var(--ink);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+
+.progression-table th {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.progression-table__row--best td:nth-child(2) {
+  color: var(--record);
+  font-weight: 700;
 }
 
 #strength-select {

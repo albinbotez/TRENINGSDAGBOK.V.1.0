@@ -58,30 +58,84 @@ async function getRecordForDistance(distanceM) {
 
 export async function getStrengthProgression(exerciseId) {
   const { data, error } = await supabase
-    .from('strength_entries')
+    .from('session_exercises')
     .select(
       `
-      weight_kg,
-      session_exercise:session_exercises!inner (
-        exercise_id,
-        session:sessions!inner ( date )
-      )
+      exercise_id,
+      session:sessions!inner ( date ),
+      strength_entries ( strength_sets ( weight_kg ) )
     `
     )
-    .eq('session_exercise.exercise_id', exerciseId)
+    .eq('exercise_id', exerciseId)
 
   if (error) throw error
 
   const byDate = new Map()
   for (const row of data) {
-    const se = unwrap(row.session_exercise)
-    const session = unwrap(se.session)
+    const strengthEntry = unwrap(row.strength_entries)
+    if (!strengthEntry) continue
+    const sets = strengthEntry.strength_sets || []
+    if (!sets.length) continue
+    const session = unwrap(row.session)
     const date = session.date
+    const heaviest = Math.max(...sets.map((s) => Number(s.weight_kg)))
     const current = byDate.get(date) || 0
-    byDate.set(date, Math.max(current, Number(row.weight_kg)))
+    byDate.set(date, Math.max(current, heaviest))
   }
 
   return Array.from(byDate.entries())
     .map(([date, weightKg]) => ({ date, weightKg }))
     .sort((a, b) => (a.date < b.date ? -1 : 1))
+}
+
+export async function getDistanceHistory(distanceM) {
+  const { data, error } = await supabase
+    .from('run_entries')
+    .select(
+      `
+      distance_m,
+      run_times ( seconds ),
+      session_exercise:session_exercises!inner (
+        session:sessions!inner ( id, date )
+      )
+    `
+    )
+    .eq('distance_m', distanceM)
+
+  if (error) throw error
+
+  const bySession = new Map()
+  for (const row of data) {
+    const se = unwrap(row.session_exercise)
+    const session = unwrap(se.session)
+    const times = (row.run_times || []).map((t) => Number(t.seconds))
+    if (!times.length) continue
+    const existing = bySession.get(session.id) || {
+      sessionId: session.id,
+      date: session.date,
+      times: [],
+    }
+    existing.times.push(...times)
+    bySession.set(session.id, existing)
+  }
+
+  const rows = Array.from(bySession.values())
+    .map((s) => ({
+      sessionId: s.sessionId,
+      date: s.date,
+      fastest: Math.min(...s.times),
+      average: s.times.reduce((a, b) => a + b, 0) / s.times.length,
+    }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+
+  let bestIndex = -1
+  let bestValue = Infinity
+  rows.forEach((r, i) => {
+    if (r.fastest < bestValue) {
+      bestValue = r.fastest
+      bestIndex = i
+    }
+  })
+
+  return { rows, bestIndex }
 }

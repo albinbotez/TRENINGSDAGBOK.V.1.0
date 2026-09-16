@@ -32,10 +32,13 @@ function renderExerciseItem(ex, prSet) {
 
 function renderExerciseDetail(ex) {
   if (ex.strength) {
+    const weights = ex.strength.sets.map((s) => Number(s.weight_kg))
+    const heaviest = weights.length ? Math.max(...weights) : 0
+    const weightList = weights.map((w) => `${w} kg`).join(', ')
     return `
       <div class="exercise-item__values">
-        <span class="value-big">${ex.strength.weight_kg} kg</span>
-        <span class="value-sub">${escapeHtml(ex.strength.reps_scheme)}</span>
+        <span class="value-big">${heaviest} kg</span>
+        <span class="value-sub">${weightList}${weightList ? ' · ' : ''}${escapeHtml(ex.strength.repsScheme)}</span>
       </div>
     `
   }
@@ -49,6 +52,16 @@ function renderExerciseDetail(ex) {
     `
   }
   return ''
+}
+
+export function renderInjuryNote(injuryNote) {
+  if (!injuryNote) return ''
+  return `
+    <p class="injury-note">
+      <span class="injury-note__label">Skade/vondt</span>
+      ${escapeHtml(injuryNote)}
+    </p>
+  `
 }
 
 export function renderRpeSegments(rpe) {
