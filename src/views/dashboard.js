@@ -3,10 +3,25 @@ import { getSprintRecords } from '../api/records.js'
 import { getProfileMap } from '../api/profiles.js'
 import { renderExerciseList, renderRpeSegments, renderInjuryNote } from './shared.js'
 import { formatDateLong, escapeHtml } from '../utils/format.js'
+import { renderCalendarSection } from './calendar.js'
 
 export async function renderDashboard(container, user) {
-  container.innerHTML = `<p class="loading">Laster …</p>`
+  container.innerHTML = `
+    <div id="calendar-mount"></div>
+    <hr class="hard-rule" />
+    <div id="latest-session-mount"><p class="loading">Laster …</p></div>
+  `
 
+  const calendarMount = container.querySelector('#calendar-mount')
+  const latestMount = container.querySelector('#latest-session-mount')
+
+  await Promise.all([
+    renderCalendarSection(calendarMount, user),
+    renderLatestSession(latestMount, user),
+  ])
+}
+
+async function renderLatestSession(container, user) {
   const isAthlete = user.role === 'utøver'
 
   const [session, records, profileMap] = await Promise.all([
@@ -37,6 +52,7 @@ export async function renderDashboard(container, user) {
   const loggedBy = profileMap[session.created_by]
 
   container.innerHTML = `
+    <h2 class="section-title">Siste økt</h2>
     <div class="session-page">
       <div class="session-page__date">
         <span class="session-page__date-label">Siste økt</span>
