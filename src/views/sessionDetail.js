@@ -1,6 +1,6 @@
 import { getSession, deleteSession } from '../api/sessions.js'
 import { getProfileMap } from '../api/profiles.js'
-import { renderExerciseList, renderRpeSegments } from './shared.js'
+import { renderExerciseList, renderRpeSegments, renderInjuryNote } from './shared.js'
 import { formatDateLong, escapeHtml } from '../utils/format.js'
 import { navigate } from '../router.js'
 
@@ -28,6 +28,7 @@ export async function renderSessionDetail(container, id, user) {
             ${renderRpeSegments(session.rpe)}
           </div>
           ${session.note ? `<p class="session-note">${escapeHtml(session.note)}</p>` : ''}
+          ${renderInjuryNote(session.injury_note)}
         </div>
         ${
           isAthlete

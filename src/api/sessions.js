@@ -1,11 +1,11 @@
 import { supabase } from '../supabaseClient.js'
 
 const SESSION_SELECT = `
-  id, date, title, rpe, note, created_by, created_at, updated_at,
+  id, date, title, rpe, note, injury_note, created_by, created_at, updated_at,
   session_exercises (
     id, position, note,
     exercise:exercises ( id, name, type ),
-    strength_entries ( weight_kg, reps_scheme ),
+    strength_entries ( reps_scheme, strength_sets ( id, weight_kg, position ) ),
     run_entries ( distance_m, run_times ( id, seconds, position ) )
   )
 `
@@ -20,10 +20,15 @@ function normalizeSession(row) {
     .slice()
     .sort((a, b) => a.position - b.position)
     .map((se) => {
-      const strength = one(se.strength_entries)
+      const strengthEntry = one(se.strength_entries)
       const run = one(se.run_entries)
       const times = run
         ? (Array.isArray(run.run_times) ? run.run_times : [])
+            .slice()
+            .sort((a, b) => a.position - b.position)
+        : []
+      const sets = strengthEntry
+        ? (Array.isArray(strengthEntry.strength_sets) ? strengthEntry.strength_sets : [])
             .slice()
             .sort((a, b) => a.position - b.position)
         : []
@@ -31,7 +36,7 @@ function normalizeSession(row) {
         id: se.id,
         note: se.note,
         exercise: se.exercise,
-        strength,
+        strength: strengthEntry ? { repsScheme: strengthEntry.reps_scheme, sets } : null,
         run: run ? { distanceM: run.distance_m, times } : null,
       }
     })
@@ -86,6 +91,7 @@ async function saveSessionExercises(sessionId, exercises) {
   if (seError) throw seError
 
   const strengthRows = []
+  const strengthWeightsBySeId = {}
   const runEntryRows = []
   const runTimesBySeId = {}
 
@@ -94,9 +100,9 @@ async function saveSessionExercises(sessionId, exercises) {
     if (ex.type === 'styrke' && ex.strength) {
       strengthRows.push({
         session_exercise_id: se.id,
-        weight_kg: ex.strength.weightKg,
         reps_scheme: ex.strength.repsScheme,
       })
+      strengthWeightsBySeId[se.id] = ex.strength.weights
     }
     if (ex.type === 'løp' && ex.run) {
       runEntryRows.push({
@@ -110,6 +116,17 @@ async function saveSessionExercises(sessionId, exercises) {
   if (strengthRows.length) {
     const { error } = await supabase.from('strength_entries').insert(strengthRows)
     if (error) throw error
+
+    const setRows = []
+    Object.entries(strengthWeightsBySeId).forEach(([seId, weights]) => {
+      weights.forEach((weightKg, i) => {
+        setRows.push({ strength_entry_id: seId, weight_kg: weightKg, position: i })
+      })
+    })
+    if (setRows.length) {
+      const { error: setsError } = await supabase.from('strength_sets').insert(setRows)
+      if (setsError) throw setsError
+    }
   }
 
   if (runEntryRows.length) {
@@ -137,6 +154,7 @@ export async function createSession(payload, userId) {
       title: payload.title,
       rpe: payload.rpe,
       note: payload.note || null,
+      injury_note: payload.injuryNote || null,
       created_by: userId,
     })
     .select()
@@ -155,6 +173,7 @@ export async function updateSession(id, payload) {
       title: payload.title,
       rpe: payload.rpe,
       note: payload.note || null,
+      injury_note: payload.injuryNote || null,
     })
     .eq('id', id)
   if (error) throw error
@@ -171,4 +190,14 @@ export async function updateSession(id, payload) {
 export async function deleteSession(id) {
   const { error } = await supabase.from('sessions').delete().eq('id', id)
   if (error) throw error
+}
+
+export async function listInjuries() {
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('id, date, title, injury_note, created_by')
+    .not('injury_note', 'is', null)
+    .order('date', { ascending: false })
+  if (error) throw error
+  return data
 }

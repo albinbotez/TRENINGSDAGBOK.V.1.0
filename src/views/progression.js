@@ -53,10 +53,10 @@ export async function renderProgression(container) {
 function renderRecordTile(distance, record) {
   if (!record) {
     return `
-      <div class="record-tile">
+      <a href="#/progresjon/${distance}" class="record-tile">
         <span class="record-tile__label">${distance} m</span>
         <span class="record-tile__value record-tile__value--empty">—</span>
-      </div>
+      </a>
     `
   }
 
@@ -64,7 +64,7 @@ function renderRecordTile(distance, record) {
     record.previousSeconds != null ? record.previousSeconds - record.seconds : null
 
   return `
-    <div class="record-tile">
+    <a href="#/progresjon/${distance}" class="record-tile">
       <span class="record-tile__label">${distance} m</span>
       <span class="record-tile__value">${formatSeconds(record.seconds)} s</span>
       <span class="record-tile__date">${formatDateShort(record.date)}</span>
@@ -73,7 +73,7 @@ function renderRecordTile(distance, record) {
           ? `<span class="record-tile__trend">−${formatSeconds(trend)} s</span>`
           : ''
       }
-    </div>
+    </a>
   `
 }
 

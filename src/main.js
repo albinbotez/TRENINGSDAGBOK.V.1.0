@@ -9,6 +9,8 @@ import { renderProgression } from './views/progression.js'
 import { renderSessionDetail } from './views/sessionDetail.js'
 import { renderSessionForm } from './views/sessionForm.js'
 import { renderSuggestions } from './views/suggestions.js'
+import { renderInjuries } from './views/injuries.js'
+import { renderProgressionDetail } from './views/progressionDetail.js'
 
 const app = document.getElementById('app')
 let currentUser = null
@@ -26,6 +28,7 @@ function renderAppShell(activePath) {
         <a href="#/" class="site-nav__link" data-path="/">Siste økt</a>
         <a href="#/historikk" class="site-nav__link" data-path="historikk">Historikk</a>
         <a href="#/forslag" class="site-nav__link" data-path="forslag">Forslag</a>
+        <a href="#/skader" class="site-nav__link" data-path="skader">Skader</a>
         <a href="#/progresjon" class="site-nav__link" data-path="progresjon">Progresjon</a>
         ${isAthlete ? '<a href="#/okt/ny" class="site-nav__link site-nav__link--cta" data-path="ny">Logg ny økt</a>' : ''}
       </nav>
@@ -77,7 +80,12 @@ registerRoute(
   guard((view, params, user) => renderHistory(view, params, user), 'historikk')
 )
 registerRoute(/^\/forslag$/, guard((view, params, user) => renderSuggestions(view, params, user), 'forslag'))
+registerRoute(/^\/skader$/, guard((view) => renderInjuries(view), 'skader'))
 registerRoute(/^\/progresjon$/, guard((view) => renderProgression(view), 'progresjon'))
+registerRoute(
+  /^\/progresjon\/(?<distance>\d+)$/,
+  guard((view, params) => renderProgressionDetail(view, params), 'progresjon')
+)
 registerRoute(
   /^\/okt\/ny$/,
   guardAthlete((view, params, user) => renderSessionForm(view, { mode: 'new' }, user), 'ny')

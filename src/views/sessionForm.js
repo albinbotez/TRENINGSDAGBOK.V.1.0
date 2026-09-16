@@ -15,6 +15,7 @@ export async function renderSessionForm(container, { mode, id }, user) {
     title: '',
     rpe: 5,
     note: '',
+    injuryNote: '',
     lines: [],
   }
   let editingSessionId = null
@@ -26,6 +27,7 @@ export async function renderSessionForm(container, { mode, id }, user) {
       title: session.title,
       rpe: mode === 'duplicate' ? 5 : session.rpe,
       note: mode === 'duplicate' ? '' : session.note || '',
+      injuryNote: mode === 'duplicate' ? '' : session.injury_note || '',
       lines: session.exercises.map((ex) => exerciseToLine(ex)),
     }
     if (mode === 'edit') editingSessionId = session.id
@@ -41,8 +43,8 @@ function exerciseToLine(ex) {
     exerciseId: ex.exercise.id,
     type: ex.exercise.type,
     note: ex.note || '',
-    weightKg: ex.strength ? ex.strength.weight_kg : '',
-    repsScheme: ex.strength ? ex.strength.reps_scheme : '',
+    weights: ex.strength ? ex.strength.sets.map((s) => s.weight_kg) : [],
+    repsScheme: ex.strength ? ex.strength.repsScheme : '',
     distanceM: ex.run ? ex.run.distanceM : '',
     times: ex.run ? ex.run.times.map((t) => t.seconds) : [],
     newExerciseName: '',
@@ -126,8 +128,20 @@ function renderLine(line, index) {
 function renderTypeFields(line, type) {
   if (type === 'styrke') {
     return `
-      <label>Tyngste sett (kg)</label>
-      <input type="number" step="0.5" min="0" data-field="weightKg" data-line-id="${line.lineId}" value="${line.weightKg ?? ''}" />
+      <label>Vekt per sett (kg)</label>
+      <div class="time-list">
+        ${line.weights
+          .map(
+            (w, i) => `
+          <div class="time-list__row">
+            <input type="number" step="0.5" min="0" data-field="weight" data-line-id="${line.lineId}" data-weight-index="${i}" value="${w}" />
+            <button type="button" data-action="remove-weight" data-line-id="${line.lineId}" data-weight-index="${i}" aria-label="Fjern sett">×</button>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+      <button type="button" class="add-time-btn" data-action="add-weight" data-line-id="${line.lineId}">+ Legg til sett</button>
       <label>Sett/reps</label>
       <input type="text" placeholder="f.eks. 5×3" data-field="repsScheme" data-line-id="${line.lineId}" value="${escapeHtml(line.repsScheme || '')}" />
     `
@@ -181,6 +195,11 @@ function renderForm(container, state, editingSessionId, user, mode) {
           <textarea id="field-note" data-field="sessionNote" rows="3" placeholder="Følelse, søvn, energi …">${escapeHtml(state.note)}</textarea>
         </div>
 
+        <div class="field">
+          <label for="field-injury">Skade/vondt (valgfritt)</label>
+          <textarea id="field-injury" data-field="injuryNote" rows="2" placeholder="f.eks. Litt sårt i hamstringen …">${escapeHtml(state.injuryNote)}</textarea>
+        </div>
+
         <hr class="hard-rule" />
 
         <h2 class="section-title">Øvelser</h2>
@@ -219,6 +238,9 @@ function wireForm(container, state, editingSessionId, user, mode) {
   form.querySelector('[data-field="sessionNote"]').addEventListener('input', (e) => {
     state.note = e.target.value
   })
+  form.querySelector('[data-field="injuryNote"]').addEventListener('input', (e) => {
+    state.injuryNote = e.target.value
+  })
 
   container.querySelector('[data-action="add-line"]').addEventListener('click', () => {
     lineCounter += 1
@@ -227,7 +249,7 @@ function wireForm(container, state, editingSessionId, user, mode) {
       exerciseId: '',
       type: '',
       note: '',
-      weightKg: '',
+      weights: [],
       repsScheme: '',
       distanceM: '',
       times: [],
@@ -259,6 +281,20 @@ function wireForm(container, state, editingSessionId, user, mode) {
     })
   })
 
+  container.querySelectorAll('[data-action="add-weight"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      findLine(state, btn.dataset.lineId).weights.push('')
+      rerender()
+    })
+  })
+
+  container.querySelectorAll('[data-action="remove-weight"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      findLine(state, btn.dataset.lineId).weights.splice(Number(btn.dataset.weightIndex), 1)
+      rerender()
+    })
+  })
+
   container.querySelectorAll('select[data-field="exerciseId"]').forEach((sel) => {
     sel.addEventListener('change', () => {
       const line = findLine(state, sel.dataset.lineId)
@@ -279,7 +315,7 @@ function wireForm(container, state, editingSessionId, user, mode) {
       rerender()
     })
   })
-  ;['newExerciseName', 'weightKg', 'repsScheme', 'distanceM', 'note'].forEach((field) => {
+  ;['newExerciseName', 'repsScheme', 'distanceM', 'note'].forEach((field) => {
     container.querySelectorAll(`[data-field="${field}"]`).forEach((input) => {
       input.addEventListener('input', () => {
         findLine(state, input.dataset.lineId)[field] = input.value
@@ -291,6 +327,13 @@ function wireForm(container, state, editingSessionId, user, mode) {
     input.addEventListener('input', () => {
       const line = findLine(state, input.dataset.lineId)
       line.times[Number(input.dataset.timeIndex)] = input.value
+    })
+  })
+
+  container.querySelectorAll('input[data-field="weight"]').forEach((input) => {
+    input.addEventListener('input', () => {
+      const line = findLine(state, input.dataset.lineId)
+      line.weights[Number(input.dataset.weightIndex)] = input.value
     })
   })
 
@@ -346,9 +389,10 @@ async function buildPayload(state) {
     const entry = { exerciseId, type, note: type !== 'løp' ? line.note || '' : '' }
 
     if (type === 'styrke') {
-      if (!line.weightKg) throw new Error('Fyll ut tyngste sett for styrkeøvelser.')
+      const weights = line.weights.filter((w) => w !== '').map(Number)
+      if (!weights.length) throw new Error('Fyll ut vekt for minst ett sett.')
       entry.strength = {
-        weightKg: Number(line.weightKg),
+        weights,
         repsScheme: line.repsScheme || '',
       }
     }
@@ -369,6 +413,7 @@ async function buildPayload(state) {
     title: state.title.trim(),
     rpe: state.rpe,
     note: state.note || '',
+    injuryNote: state.injuryNote || '',
     exercises,
   }
 }
