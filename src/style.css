@@ -348,58 +348,79 @@ input {
   border-style: dashed;
 }
 
-.calendar-add-btn {
-  align-self: flex-start;
-  min-width: 44px;
-  min-height: 44px;
-  border: var(--border-thin) dashed var(--ink);
-  background: transparent;
+button.calendar-cell {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--concrete);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
   color: var(--ink);
-  font-size: 1.1rem;
-  line-height: 1;
-  opacity: 0.55;
+  align-items: flex-start;
 }
 
-.calendar-add-btn:hover,
-.calendar-add-btn:focus-visible {
-  opacity: 1;
-  background: var(--ink);
-  color: var(--concrete);
+button.calendar-cell:hover,
+button.calendar-cell:focus-visible {
+  background: #e2ddd0;
+}
+
+.calendar-cell--selected {
+  box-shadow: inset 0 0 0 2px var(--hazard);
+}
+
+.calendar-cell__add-hint {
+  margin-top: auto;
+  font-size: 0.9rem;
+  opacity: 0.4;
+  line-height: 1;
 }
 
 .calendar-quick-add {
+  border-top: var(--border-thick) solid var(--ink);
+  padding: 0.85rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.5rem;
+}
+
+.calendar-quick-add label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.calendar-quick-add__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .calendar-quick-add input {
-  min-height: 36px;
-  padding: 0.2rem 0.4rem;
-  border: var(--border-thin) solid var(--ink);
-  font-size: 0.75rem;
-  background: #fff;
-  width: 100%;
-}
-
-.calendar-quick-add__actions {
-  display: flex;
-  gap: 0.3rem;
-}
-
-.calendar-quick-add__actions button {
+  flex: 1 1 200px;
   min-height: 44px;
-  padding: 0.2rem 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: var(--border-thin) solid var(--ink);
+  font-size: 0.95rem;
+  background: #fff;
+}
+
+.calendar-quick-add__row button {
+  min-height: 44px;
+  padding: 0.4rem 1rem;
   border: var(--border-thin) solid var(--ink);
   background: var(--ink);
   color: var(--concrete);
-  font-size: 0.65rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  flex: 1;
 }
 
-.calendar-quick-add__actions button[type='button'] {
+.calendar-quick-add__row button[type='button'] {
   background: transparent;
   color: var(--ink);
 }

@@ -1,5 +1,5 @@
 import { listSessions, createSession } from '../api/sessions.js'
-import { escapeHtml } from '../utils/format.js'
+import { escapeHtml, formatDateLong } from '../utils/format.js'
 
 const MONTH_NAMES = [
   'Januar',
@@ -30,7 +30,7 @@ export async function renderCalendarSection(container, user) {
   function render() {
     container.innerHTML = buildCalendarHtml(viewYear, viewMonth, sessions, isAthlete, addingDate)
     wireEvents()
-    const quickAddInput = container.querySelector('#calendar-quick-add input')
+    const quickAddInput = container.querySelector('#calendar-quick-add-title')
     if (quickAddInput) quickAddInput.focus()
   }
 
@@ -76,7 +76,7 @@ export async function renderCalendarSection(container, user) {
     if (form) {
       form.addEventListener('submit', async (event) => {
         event.preventDefault()
-        const input = form.querySelector('input[name="title"]')
+        const input = form.querySelector('#calendar-quick-add-title')
         const title = input.value.trim()
         if (!title) return
 
@@ -116,6 +116,8 @@ function buildCalendarHtml(year, month, sessions, isAthlete, addingDate) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       const daySessions = sessions.filter((s) => s.date === dateStr)
       const isToday = dateStr === todayStr
+      const isSelected = addingDate === dateStr
+      const canAdd = isAthlete && daySessions.length === 0
 
       const markers = daySessions
         .map((s) => {
@@ -125,32 +127,44 @@ function buildCalendarHtml(year, month, sessions, isAthlete, addingDate) {
         })
         .join('')
 
-      const showAddButton = isAthlete && daySessions.length === 0 && addingDate !== dateStr
+      const cellClasses = [
+        'calendar-cell',
+        isToday ? 'calendar-cell--today' : '',
+        isSelected ? 'calendar-cell--selected' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
 
-      const addUi =
-        addingDate === dateStr
-          ? `
-        <form id="calendar-quick-add" class="calendar-quick-add">
-          <input type="text" name="title" placeholder="Tittel …" required />
-          <div class="calendar-quick-add__actions">
-            <button type="submit">Lagre</button>
-            <button type="button" data-action="cancel-add">Avbryt</button>
-          </div>
-        </form>
-      `
-          : showAddButton
-            ? `<button type="button" class="calendar-add-btn" data-action="open-add" data-date="${dateStr}" aria-label="Legg til planlagt økt ${day}.">+</button>`
-            : ''
+      if (canAdd) {
+        return `
+          <button type="button" class="${cellClasses} calendar-cell--addable" data-action="open-add" data-date="${dateStr}" aria-label="Legg til planlagt økt ${day}.">
+            <span class="calendar-cell__day">${day}</span>
+            <span class="calendar-cell__add-hint" aria-hidden="true">+</span>
+          </button>
+        `
+      }
 
       return `
-        <div class="calendar-cell ${isToday ? 'calendar-cell--today' : ''}">
+        <div class="${cellClasses}">
           <span class="calendar-cell__day">${day}</span>
           ${markers}
-          ${addUi}
         </div>
       `
     })
     .join('')
+
+  const quickAddPanel = addingDate
+    ? `
+    <form id="calendar-quick-add" class="calendar-quick-add">
+      <label for="calendar-quick-add-title">Ny planlagt økt — ${formatDateLong(addingDate)}</label>
+      <div class="calendar-quick-add__row">
+        <input id="calendar-quick-add-title" type="text" name="title" placeholder="f.eks. Styrke" required />
+        <button type="submit">Lagre</button>
+        <button type="button" data-action="cancel-add">Avbryt</button>
+      </div>
+    </form>
+  `
+    : ''
 
   return `
     <div class="calendar">
@@ -165,6 +179,7 @@ function buildCalendarHtml(year, month, sessions, isAthlete, addingDate) {
       <div class="calendar-grid">
         ${dayCells}
       </div>
+      ${quickAddPanel}
     </div>
   `
 }

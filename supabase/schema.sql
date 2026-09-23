@@ -49,6 +49,37 @@ create table if not exists session_exercises (
 
 create index if not exists session_exercises_session_idx on session_exercises (session_id);
 
+-- Slå sammen eventuelle duplikate øvelser (samme navn, uavhengig av
+-- store/små bokstaver og mellomrom) til én kanonisk rad, og pek
+-- eksisterende økter om til den før duplikatene slettes. Trygt å kjøre
+-- flere ganger: gjør ingenting når det ikke finnes duplikater.
+do $$
+declare
+  dup record;
+  canonical_id uuid;
+  extra_ids uuid[];
+begin
+  for dup in
+    select array_agg(id order by created_at asc, id asc) as ids
+    from exercises
+    group by lower(trim(name))
+    having count(*) > 1
+  loop
+    canonical_id := dup.ids[1];
+    extra_ids := dup.ids[2:array_length(dup.ids, 1)];
+
+    update session_exercises
+      set exercise_id = canonical_id
+      where exercise_id = any(extra_ids);
+
+    delete from exercises where id = any(extra_ids);
+  end loop;
+end $$;
+
+-- Hindre nye duplikater fremover (uavhengig av store/små bokstaver og
+-- mellomrom).
+create unique index if not exists exercises_name_unique_idx on exercises (lower(trim(name)));
+
 -- Styrkedata for en loggført øvelse (sett/reps-skjema som fritekst).
 create table if not exists strength_entries (
   session_exercise_id uuid primary key references session_exercises(id) on delete cascade,

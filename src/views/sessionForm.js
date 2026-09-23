@@ -1,4 +1,4 @@
-import { listExercises, createExercise } from '../api/exercises.js'
+import { listExercises, findOrCreateExercise } from '../api/exercises.js'
 import { getSession, createSession, updateSession } from '../api/sessions.js'
 import { navigate } from '../router.js'
 import { escapeHtml } from '../utils/format.js'
@@ -377,11 +377,13 @@ async function buildPayload(state) {
       if (!line.newExerciseName || !line.newExerciseName.trim()) {
         throw new Error('Navn på ny øvelse må fylles ut.')
       }
-      const created = await createExercise({
+      const created = await findOrCreateExercise({
         name: line.newExerciseName.trim(),
         type: line.newExerciseType,
       })
-      exerciseLibrary.push(created)
+      if (!exerciseLibrary.some((e) => e.id === created.id)) {
+        exerciseLibrary.push(created)
+      }
       exerciseId = created.id
       type = created.type
     }
