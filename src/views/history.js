@@ -8,7 +8,10 @@ export async function renderHistory(container, params, user) {
 
   const isAthlete = user.role === 'utøver'
 
-  const [sessions, profileMap] = await Promise.all([listSessions(), getProfileMap()])
+  const [allSessions, profileMap] = await Promise.all([listSessions(), getProfileMap()])
+  // Planlagte økter (uten øvelser ennå) hører hjemme i kalenderen, ikke i
+  // historikken over faktisk gjennomførte økter.
+  const sessions = allSessions.filter((s) => s.exercises.length > 0)
 
   if (!sessions.length) {
     container.innerHTML = `
