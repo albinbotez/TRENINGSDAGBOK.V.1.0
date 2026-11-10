@@ -1,55 +1,63 @@
 import { getSession, deleteSession } from '../api/sessions.js'
+import { getSprintRecords } from '../api/records.js'
 import { getProfileMap } from '../api/profiles.js'
-import { renderExerciseList, renderRpeSegments, renderInjuryNote } from './shared.js'
-import { formatDateLong, escapeHtml } from '../utils/format.js'
+import { confirmDialog, notify } from '../ui/feedback.js'
 import { navigate } from '../router.js'
+import { isPlanned, renderLoading, renderSessionCard } from './shared.js'
 
 export async function renderSessionDetail(container, id, user) {
-  container.innerHTML = `<p class="loading">Laster …</p>`
+  const athlete = user.role === 'utøver'
+  container.innerHTML = renderLoading()
 
-  const isAthlete = user.role === 'utøver'
+  const [session, records, profileMap] = await Promise.all([
+    getSession(id),
+    getSprintRecords(),
+    getProfileMap(),
+  ])
+  const planned = isPlanned(session)
 
-  const [session, profileMap] = await Promise.all([getSession(id), getProfileMap()])
-  const loggedBy = profileMap[session.created_by]
+  // A 60 m / 150 m record set in this session is highlighted here as well.
+  const prSet = new Set()
+  for (const distance of [60, 150]) {
+    const record = records[distance]
+    if (record && record.date === session.date) prSet.add(String(distance))
+  }
+
+  const actions = athlete
+    ? `
+      <a href="#/okt/${session.id}/rediger" class="btn btn--primary">${planned ? 'Loggfør økta' : 'Rediger'}</a>
+      ${planned ? '' : `<a href="#/okt/${session.id}/dupliser" class="btn">Kjør på nytt</a>`}
+      <button type="button" class="btn btn--quiet" data-action="delete">${planned ? 'Fjern fra planen' : 'Slett'}</button>
+    `
+    : ''
 
   container.innerHTML = `
-    <div class="session-page">
-      <div class="session-page__date">
-        <span class="session-page__date-label">Dato</span>
-        <span class="session-page__date-value">${formatDateLong(session.date)}</span>
-        ${loggedBy ? `<span class="badge">${escapeHtml(loggedBy.display_name)}</span>` : ''}
-      </div>
-      <div class="session-page__content">
-        <h1 class="page-title">${escapeHtml(session.title)}</h1>
-        ${renderExerciseList(session.exercises)}
-        <div class="session-meta">
-          <div class="rpe-display">
-            <span class="rpe-display__label">RPE</span>
-            ${renderRpeSegments(session.rpe)}
-          </div>
-          ${session.note ? `<p class="session-note">${escapeHtml(session.note)}</p>` : ''}
-          ${renderInjuryNote(session.injury_note)}
-        </div>
-        ${
-          isAthlete
-            ? `
-          <div class="session-page__actions">
-            <a href="#/okt/${session.id}/rediger" class="text-link">Rediger</a>
-            <a href="#/okt/${session.id}/dupliser" class="text-link">Kjør denne på nytt</a>
-            <button type="button" class="text-link text-link--danger" id="delete-btn">Slett</button>
-          </div>
-        `
-            : ''
-        }
-      </div>
-    </div>
+    <a href="${planned ? '#/' : '#/historikk'}" class="backlink">&larr; ${planned ? 'Oversikt' : 'Historikk'}</a>
+    ${renderSessionCard(session, {
+      author: profileMap[session.created_by],
+      prSet,
+      heading: 'h1',
+      actions,
+    })}
   `
 
-  if (isAthlete) {
-    document.getElementById('delete-btn').addEventListener('click', async () => {
-      if (!window.confirm('Slette denne økta? Dette kan ikke angres.')) return
-      await deleteSession(session.id)
-      navigate('/historikk')
+  container.querySelector('[data-action="delete"]')?.addEventListener('click', async () => {
+    const confirmed = await confirmDialog({
+      title: planned ? 'Fjerne planlagt økt?' : 'Slette økta?',
+      message: planned
+        ? `«${session.title}» fjernes fra planen.`
+        : `«${session.title}» slettes for godt. Dette kan ikke angres.`,
+      confirmLabel: planned ? 'Fjern' : 'Slett',
     })
-  }
+    if (!confirmed) return
+
+    try {
+      await deleteSession(session.id)
+      notify(planned ? 'Planlagt økt fjernet' : 'Økta er slettet')
+      navigate(planned ? '/' : '/historikk')
+    } catch (error) {
+      console.error(error)
+      notify('Kunne ikke slette økta. Prøv igjen.')
+    }
+  })
 }

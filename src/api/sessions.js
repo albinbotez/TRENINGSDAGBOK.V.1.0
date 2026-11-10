@@ -63,20 +63,6 @@ export async function getSession(id) {
   return normalizeSession(data)
 }
 
-export async function getLatestSession() {
-  const { data, error } = await supabase
-    .from('sessions')
-    .select(SESSION_SELECT)
-    .order('date', { ascending: false })
-    .order('created_at', { ascending: false })
-    .limit(10)
-  if (error) throw error
-  const sessions = data.map(normalizeSession)
-  // Skip planned (empty) sessions from the future/present so a placeholder
-  // in the week planner doesn't hide the real most recent logged session.
-  return sessions.find((s) => s.exercises.length > 0) || sessions[0] || null
-}
-
 async function saveSessionExercises(sessionId, exercises) {
   if (!exercises.length) return
 

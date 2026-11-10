@@ -23,10 +23,12 @@ export async function createExercise({ name, type }) {
 // bokstaver) i stedet for å opprette en duplikat i biblioteket.
 export async function findOrCreateExercise({ name, type }) {
   const trimmed = name.trim()
+  // % and _ are wildcards in ILIKE; escape them so the match is exact.
+  const pattern = trimmed.replace(/[\\%_]/g, '\\$&')
   const { data: existing, error: findError } = await supabase
     .from('exercises')
     .select('*')
-    .ilike('name', trimmed)
+    .ilike('name', pattern)
     .limit(1)
   if (findError) throw findError
   if (existing.length) return existing[0]
