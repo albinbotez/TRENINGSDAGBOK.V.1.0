@@ -3,6 +3,25 @@
 Treningsdagbok for en sprinter og treneren hennes. Bygget med Vite + vanilla
 JavaScript/CSS og Supabase (autentisering + database).
 
+## Funksjoner
+
+- **Oversikt:** månedskalender og ukeplan. Utøveren kan legge inn planlagte
+  økter (bare tittel) og loggføre dem når de er gjennomført.
+- **Logg økt:** øvelser med vekt per sett eller tid per repetisjon, RPE,
+  notat og valgfri skade/vondt-merknad.
+- **Historikk:** gjennomførte økter gruppert per måned.
+- **Progresjon:** personlige rekorder på 60 m og 150 m med graf per
+  distanse, og tyngste sett per styrkeøvelse.
+- **Skader** og **Forslag** (treneren kan lese alt og skrive forslag, men
+  ikke endre økter).
+- **Eksport:** «Eksporter data» på Historikk/Progresjon samler alle øktene
+  i én tekst (Markdown eller JSON) som kan kopieres eller lastes ned og gis
+  til en AI-assistent for å lage en rapport.
+
+Skriftene (Big Shoulders Display og Space Grotesk) følger med i bygget via
+`@fontsource`, så appen laster ingenting fra eksterne tjenester utenom
+Supabase.
+
 ## Lokal utvikling
 
 1. `npm install`
