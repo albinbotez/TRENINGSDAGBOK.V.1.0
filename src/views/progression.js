@@ -1,5 +1,6 @@
 import { getSprintRecords, getStrengthProgression } from '../api/records.js'
 import { listExercises } from '../api/exercises.js'
+import { groupStrengthExercises } from '../utils/exerciseGroups.js'
 import { escapeHtml, formatDateLong, formatDateShort, formatNumber, formatSeconds } from '../utils/format.js'
 import { renderLoading, renderPageHead } from './shared.js'
 
@@ -7,7 +8,7 @@ export async function renderProgression(container) {
   container.innerHTML = renderLoading()
 
   const [records, exercises] = await Promise.all([getSprintRecords(), listExercises()])
-  const strengthExercises = exercises.filter((e) => e.type === 'styrke')
+  const groups = groupStrengthExercises(exercises.filter((e) => e.type === 'styrke'))
 
   container.innerHTML = `
     ${renderPageHead('Progresjon', { actions: '<a href="#/eksport" class="btn">Eksporter data</a>' })}
@@ -23,13 +24,13 @@ export async function renderProgression(container) {
     <section class="section" aria-label="Styrke">
       <h2 class="section-title">Styrke – tyngste sett per økt</h2>
       ${
-        strengthExercises.length
+        groups.length
           ? `
         <div class="field field--narrow">
           <label class="field__label" for="strength-select">Øvelse</label>
           <select id="strength-select">
-            ${strengthExercises
-              .map((e) => `<option value="${e.id}">${escapeHtml(e.name)}</option>`)
+            ${groups
+              .map((g) => `<option value="${escapeHtml(g.key)}">${escapeHtml(g.label)}</option>`)
               .join('')}
           </select>
         </div>
@@ -50,8 +51,9 @@ export async function renderProgression(container) {
     const current = ++requestId
     chartMount.innerHTML = renderLoading()
     try {
-      const data = await getStrengthProgression(select.value)
-      if (current === requestId) chartMount.innerHTML = renderBarChart(data)
+      const group = groups.find((g) => g.key === select.value)
+      const data = await getStrengthProgression(group.ids)
+      if (current === requestId) chartMount.innerHTML = renderBarChart(data, group)
     } catch (error) {
       console.error(error)
       if (current === requestId) {
@@ -92,12 +94,19 @@ function renderRecordTile(distance, record) {
   `
 }
 
-function renderBarChart(data) {
+function variantLabel(group, exerciseId) {
+  // Only shown when the lift exists in several variants.
+  const variant = group.ids.length > 1 ? group.variants.get(exerciseId) : null
+  return variant ? `(${escapeHtml(variant)})` : ''
+}
+
+function renderBarChart(data, group) {
   if (!data.length) {
     return '<p class="muted">Ingen registreringer for denne øvelsen ennå.</p>'
   }
 
   const max = Math.max(...data.map((d) => d.weightKg))
+  const heaviest = data.find((d) => d.weightKg === max)
   const first = data[0]
   const last = data[data.length - 1]
   const change = last.weightKg - first.weightKg
@@ -110,6 +119,7 @@ function renderBarChart(data) {
           <span class="bar-chart__value">${formatNumber(d.weightKg)}</span>
           <span class="bar-chart__track"><span class="bar-chart__bar" style="height: ${heightPct}%"></span></span>
           <span class="bar-chart__date">${formatDateShort(d.date)}</span>
+          <span class="bar-chart__variant">${variantLabel(group, d.exerciseId)}</span>
         </li>
       `
     })
@@ -117,8 +127,8 @@ function renderBarChart(data) {
 
   return `
     <dl class="stat-row">
-      <div><dt>Tyngste sett</dt><dd>${formatNumber(max)} kg</dd></div>
-      <div><dt>Siste økt</dt><dd>${formatNumber(last.weightKg)} kg</dd></div>
+      <div><dt>Tyngste sett</dt><dd>${formatNumber(max)} kg <span class="stat-row__variant">${variantLabel(group, heaviest.exerciseId)}</span></dd></div>
+      <div><dt>Siste økt</dt><dd>${formatNumber(last.weightKg)} kg <span class="stat-row__variant">${variantLabel(group, last.exerciseId)}</span></dd></div>
       <div><dt>Endring siden første</dt><dd>${change > 0 ? '+' : change < 0 ? '−' : ''}${formatNumber(Math.abs(change))} kg</dd></div>
     </dl>
     <div class="chart-scroll">
