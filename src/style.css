@@ -1866,6 +1866,21 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
+.bar-chart__variant {
+  min-height: 1em;
+  color: var(--ink-soft);
+  font-size: 0.72rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.stat-row__variant {
+  color: var(--ink-soft);
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
 .chart {
   margin-bottom: 24px;
 }

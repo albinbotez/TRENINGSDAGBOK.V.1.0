@@ -56,7 +56,10 @@ async function getRecordForDistance(distanceM) {
   }
 }
 
-export async function getStrengthProgression(exerciseId) {
+// Accepts one exercise id or a list (variants of the same lift are merged).
+// Returns the heaviest set per date, with the exercise it came from.
+export async function getStrengthProgression(exerciseIds) {
+  const ids = [].concat(exerciseIds)
   const { data, error } = await supabase
     .from('session_exercises')
     .select(
@@ -66,7 +69,7 @@ export async function getStrengthProgression(exerciseId) {
       strength_entries ( strength_sets ( weight_kg ) )
     `
     )
-    .eq('exercise_id', exerciseId)
+    .in('exercise_id', ids)
 
   if (error) throw error
 
@@ -79,13 +82,13 @@ export async function getStrengthProgression(exerciseId) {
     const session = unwrap(row.session)
     const date = session.date
     const heaviest = Math.max(...sets.map((s) => Number(s.weight_kg)))
-    const current = byDate.get(date) || 0
-    byDate.set(date, Math.max(current, heaviest))
+    const current = byDate.get(date)
+    if (!current || heaviest > current.weightKg) {
+      byDate.set(date, { date, weightKg: heaviest, exerciseId: row.exercise_id })
+    }
   }
 
-  return Array.from(byDate.entries())
-    .map(([date, weightKg]) => ({ date, weightKg }))
-    .sort((a, b) => (a.date < b.date ? -1 : 1))
+  return Array.from(byDate.values()).sort((a, b) => (a.date < b.date ? -1 : 1))
 }
 
 export async function getDistanceHistory(distanceM) {
